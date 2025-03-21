@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     // 构建Markdown响应
     let markdownResponse = "";
     
-    // 处理所有生成的图片
+    // 首先添加所有图片
     for (let i = 0; i < respData.data.length; i++) {
       const imageData = respData.data[i];
       let imageUrl;
@@ -100,25 +100,27 @@ export async function POST(req: NextRequest) {
         continue;
       }
       
-      // 添加图片和修订后的提示词到Markdown
-      markdownResponse += `
-![Generated Image ${i+1}](${imageUrl})
-*原始提示词: ${prompt}*
-*修订后提示词: ${imageData.revised_prompt}*
-      `.trim();
+      // 只添加图片，不添加提示词
+      markdownResponse += `![Generated Image ${i+1}](${imageUrl})`;
       
       // 如果有多张图片，添加分隔符
       if (i < respData.data.length - 1) {
-        markdownResponse += "\n\n---\n\n";
+        markdownResponse += "\n\n";
       }
     }
-
+    
     // 如果没有成功生成任何图片
     if (!markdownResponse) {
       return NextResponse.json(
         { message: "Failed to generate any images." },
         { status: 500 },
       );
+    }
+    
+    // 在所有图片之后，添加一次原始提示词和修订后提示词
+    // 使用第一张图片的修订后提示词（通常多张图片使用相同的提示词）
+    if (respData.data.length > 0 && respData.data[0].revised_prompt) {
+      markdownResponse += `\n\n*原始提示词: ${prompt}*\n\n*修订后提示词: ${respData.data[0].revised_prompt}*`;
     }
 
     // 9. 返回响应给客户端
